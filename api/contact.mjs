@@ -1,14 +1,6 @@
 const DEFAULT_TO = 'toumagnonsouleymane503@gmail.com';
 const DEFAULT_FROM = 'Souleymane Toumagnon <onboarding@resend.dev>';
-
-const json = (data, status = 200) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-    },
-  });
+const MAX_BODY = 1024 * 1024;
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 
@@ -17,19 +9,65 @@ const escapeHtml = (value) =>
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
   }[char]));
 
-export default async function handler(request) {
-  if (request.method !== 'POST') return json({ message: 'Méthode non autorisée.' }, 405);
+const readBody = (req, limit = MAX_BODY) => new Promise((resolve, reject) => {
+  const chunks = [];
+  let size = 0;
+  req.on('data', (chunk) => {
+    size += chunk.length;
+    if (size > limit) { reject(new Error('body_too_large')); req.destroy(); return; }
+    chunks.push(chunk);
+  });
+  req.on('end', () => resolve(Buffer.concat(chunks)));
+  req.on('error', reject);
+});
+
+const parseMultipart = (body, contentType) => {
+  const match = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType);
+  if (!match) return {};
+  const boundary = Buffer.from('--' + (match[1] || match[2]).trim());
+  const fields = {};
+  let start = body.indexOf(boundary);
+  while (start !== -1) {
+    const next = body.indexOf(boundary, start + boundary.length);
+    if (next === -1) break;
+    const part = body.slice(start + boundary.length + 2, next - 2);
+    const headerEnd = part.indexOf('\r\n\r\n');
+    if (headerEnd !== -1) {
+      const header = part.slice(0, headerEnd).toString('utf8');
+      const nameMatch = /name="([^"]*)"/i.exec(header);
+      if (nameMatch) fields[nameMatch[1]] = part.slice(headerEnd + 4).toString('utf8');
+    }
+    start = next;
+  }
+  return fields;
+};
+
+export default async function handler(req, res) {
+  const json = (data, status = 200) => {
+    res.statusCode = status;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify(data));
+  };
+
+  if (req.method !== 'POST') return json({ message: 'Méthode non autorisée.' }, 405);
 
   try {
-    const form = await request.formData();
-    if (clean(form.get('website'), 200)) return json({ message: 'Demande reçue.' });
+    const contentType = req.headers['content-type'] || '';
+    if (!/multipart\/form-data/i.test(contentType)) {
+      return json({ message: 'Requête invalide.' }, 400);
+    }
 
-    const name = clean(form.get('name'), 120);
-    const email = clean(form.get('email'), 254);
-    const company = clean(form.get('company'), 160);
-    const project = clean(form.get('project'), 5000);
-    const budget = clean(form.get('budget'), 120);
-    const deadline = clean(form.get('deadline'), 120);
+    const body = await readBody(req);
+    const form = parseMultipart(body, contentType);
+    if (clean(form.website, 200)) return json({ message: 'Demande reçue.' });
+
+    const name = clean(form.name, 120);
+    const email = clean(form.email, 254);
+    const company = clean(form.company, 160);
+    const project = clean(form.project, 5000);
+    const budget = clean(form.budget, 120);
+    const deadline = clean(form.deadline, 120);
 
     if (!name || !project || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json({ message: 'Vérifiez votre nom, votre email et la description du projet.' }, 400);
@@ -81,6 +119,7 @@ export default async function handler(request) {
 
     return json({ message: 'Votre demande a bien été envoyée. Je reviens vers vous rapidement.' });
   } catch (error) {
+    if (error.message === 'body_too_large') return json({ message: 'Le contenu envoyé est trop volumineux.' }, 413);
     console.error(error);
     return json({ message: 'Une erreur est survenue. Réessayez ou contactez-moi directement par email.' }, 500);
   }
