@@ -311,6 +311,7 @@
     if (Math.abs(opacity - band.opacity) > .004) {
       band.opacity = opacity;
       band.element.style.opacity = opacity;
+      band.element.classList.toggle('is-active', opacity > .35);
     }
   });
   const tick = () => {
