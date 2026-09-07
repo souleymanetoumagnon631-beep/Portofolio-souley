@@ -279,7 +279,6 @@
     const [start, end] = element.dataset.band.split(',').map(Number);
     return { element, start, end, opacity: -1 };
   });
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let scrubEnabled = false;
   let seekBusy = false;
   let pendingTime = null;
@@ -301,7 +300,7 @@
     seekBusy = false;
     if (pendingTime !== null) { const time = pendingTime; pendingTime = null; requestSeek(time); }
   });
-  video.addEventListener('error', () => { seekBusy = false; pendingTime = null; heroStage.classList.add('video-failed'); });
+  video.addEventListener('error', () => { seekBusy = false; pendingTime = null; heroStage.classList.remove('loading'); heroStage.classList.add('video-failed'); });
 
   const updateBands = progress => bands.forEach(band => {
     const fade = Math.min(.02, (band.end - band.start) / 3);
@@ -337,17 +336,24 @@
       video.load();
     };
     if (window.location.protocol === 'file:') {
-      fetch('../assets/hero-scrub.mp4').then(response => response.blob()).then(blob => {
+      fetch('../assets/hero-scrub.mp4').then(response => {
+        if (!response.ok) throw new Error('hero-scrub introuvable');
+        return response.blob();
+      }).then(blob => {
         video.src = URL.createObjectURL(blob);
         markVideoReady();
-      }).catch(() => { heroStage.classList.remove('loading'); heroStage.classList.add('video-failed'); });
+      }).catch(() => {
+        // Chrome bloque fetch() en file:// : repli sur le chargement direct par la balise <video>
+        video.src = '../assets/hero-scrub.mp4';
+        markVideoReady();
+      });
     } else {
       video.src = '../assets/hero-scrub.mp4';
       markVideoReady();
     }
   };
   const applyHeroMode = () => {
-    const enabled = !reducedMotion.matches;
+    const enabled = true; // scrub vidéo forcé : actif sur desktop et mobile
     if (enabled === scrubEnabled) return;
     scrubEnabled = enabled;
     if (enabled) {
@@ -361,6 +367,5 @@
       updateBands(0);
     }
   };
-  reducedMotion.addEventListener('change', applyHeroMode);
   applyHeroMode();
 })();
