@@ -1,0 +1,10 @@
+# Vercel CLI
+.vercel/
+
+# Système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dépendances (aucune requise, par précaution)
+node_modules/
