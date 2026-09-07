@@ -50,7 +50,7 @@ Optionnelles :
 
 Le sender `onboarding@resend.dev` convient pour le test initial vers l'adresse email associée au compte Resend. Pour envoyer vers d'autres destinataires, Resend demande ensuite de vérifier un domaine.
 
-## Après le premier déploiement
+## Domaine
 
-Remplacez `https://YOUR-DOMAIN.example/` dans `robots.txt` et `sitemap.xml` par votre URL de production (ex. `https://votre-projet.vercel.app/`).
+`robots.txt` et `sitemap.xml` pointent vers `https://portofolio-souley.vercel.app/`. Si vous ajoutez un domaine personnalisé, remplacez cette URL dans ces deux fichiers.
 
