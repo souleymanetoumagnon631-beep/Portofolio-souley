@@ -84,7 +84,9 @@ const SITE_COPY = {
     options:["Choisir","Villa privée","Yacht privé","Événement / retreat","Partenariat B2B","Autre demande"],
     consent:"J’accepte d’être recontacté au sujet de cette demande.",
     submit:"Envoyer ma demande",
-    success:"Votre demande a bien été transmise. Nous reviendrons vers vous rapidement.",
+    successTitle:"Demande envoyée",
+    success:"Merci. Votre brief a bien été transmis à Maison Privée. Nous revenons vers vous rapidement.",
+    successClose:"Fermer",
     error:"Impossible d’envoyer la demande pour le moment.",
     genericError:"Une erreur est survenue."
   },
@@ -160,7 +162,9 @@ const SITE_COPY = {
     options:["Choose","Private villa","Private yacht","Event / retreat","B2B partnership","Other request"],
     consent:"I agree to be contacted regarding this request.",
     submit:"Send my request",
-    success:"Your request has been received. We’ll get back to you shortly.",
+    successTitle:"Request sent",
+    success:"Thank you. Your brief has been sent to Maison Privée. We’ll get back to you shortly.",
+    successClose:"Close",
     error:"Unable to send your request right now.",
     genericError:"Something went wrong."
   }
@@ -339,6 +343,9 @@ $$('#mobileNav a, #mobileNav button').forEach(el => el.addEventListener('click',
 }));
 
 function openModal(service = '') {
+  form.classList.remove('submitted');
+  status.textContent = '';
+  status.className = 'form-status';
   modal.classList.add('is-open');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('modal-open');
@@ -379,9 +386,18 @@ form.addEventListener('submit', async (e) => {
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(payload.error || SITE_COPY[currentLang].genericError);
 
-    status.textContent = SITE_COPY[currentLang].success;
+    const copy = SITE_COPY[currentLang];
+    status.innerHTML = `
+      <span class="success-mark" aria-hidden="true">✓</span>
+      <strong class="success-title">${copy.successTitle}</strong>
+      <span class="success-message">${copy.success}</span>
+      <button type="button" class="btn btn-gold success-close" data-success-close>${copy.successClose}</button>
+    `;
     status.classList.add('success');
+    form.classList.add('submitted');
     form.reset();
+    status.querySelector('[data-success-close]')?.addEventListener('click', closeModal);
+    status.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (err) {
     status.textContent = err.message || SITE_COPY[currentLang].error;
     status.classList.add('error');
