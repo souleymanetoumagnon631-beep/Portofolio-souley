@@ -91,8 +91,23 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: fromEmail,
         to: [toEmail],
-        subject: `Nouvelle demande — ${data.service} — ${data.name}`,
-        html
+        reply_to: data.email,
+        subject: `Nouveau brief Maison Privée — ${data.name}`,
+        html,
+        text: `Maison Privée — Nouveau brief
+
+Nom: ${data.name}
+Email: ${data.email}
+Téléphone: ${data.phone || '—'}
+Société / agence: ${data.company || '—'}
+Type de demande: ${data.service}
+Destination: ${data.destination || '—'}
+Dates: ${data.dates || '—'}
+Invités: ${data.guests || '—'}
+Budget indicatif: ${data.budget || '—'}
+
+Brief:
+${data.message}`
       })
     });
 
