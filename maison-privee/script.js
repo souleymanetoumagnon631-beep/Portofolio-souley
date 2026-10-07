@@ -1,18 +1,3 @@
-
-const ASSET_NAMES = ['founder.webp','hero-villa.webp','villa-interior.webp','villa-sunset.webp','yacht.webp'];
-const assetUrls = {};
-async function loadAssets(){
-  await Promise.all(ASSET_NAMES.map(async name => {
-    const r = await fetch(`/assets/${name}.b64`, { cache: 'force-cache' });
-    if (!r.ok) throw new Error(`Asset load failed: ${name}`);
-    const b64 = (await r.text()).trim();
-    assetUrls[name] = `data:image/webp;base64,${b64}`;
-  }));
-  document.querySelectorAll('[data-asset]').forEach(el => { const u=assetUrls[el.dataset.asset]; if(u) el.src=u; });
-  document.querySelectorAll('[data-asset-bg]').forEach(el => { const u=assetUrls[el.dataset.assetBg]; if(u) el.style.backgroundImage=`url("${u}")`; });
-}
-loadAssets().catch(console.error);
-
 const $ = (sel, scope = document) => scope.querySelector(sel);
 const $$ = (sel, scope = document) => [...scope.querySelectorAll(sel)];
 
